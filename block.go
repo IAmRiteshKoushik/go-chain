@@ -2,8 +2,8 @@ package main
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"strconv"
+	"encoding/gob"
+	"log"
 	"time"
 )
 
@@ -30,19 +30,35 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 	return block
 }
 
-func (b *Block) SetHash() {
-	// returns the timestamp as a string
-	timestamp := []byte(strconv.FormatInt(b.Timestamp, 10))
+// For mining, there always needs to be the 'first' block of the chain,
+// and the block is called the genesis block
+func NewGenesisBlock() *Block {
+	return NewBlock("Genesis Block", []byte{})
+}
 
-	// headers is a matrix which contains 2 slices
-	// [prevHash, Data, timestamp]
-	// [empty]
-	headers := bytes.Join([][]byte{
-		b.PrevBlockHash,
-		b.Data,
-		timestamp,
-	}, []byte{})
-	hash := sha256.Sum256(headers)
+// For serialization and deserialization needs, we are using the Go
+// binary encoding format (aka gob). Here, we create Encoders and Decoders
+// which handle the underlying serialization and deserialization for us.
+func (b *Block) Serialize() []byte {
+	var result bytes.Buffer
+	encoder := gob.NewEncoder(&result)
 
-	b.Hash = hash[:]
+	err := encoder.Encode(b)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return result.Bytes()
+}
+
+func DeserializeBlock(d []byte) *Block {
+	var block Block
+
+	decoder := gob.NewDecoder(bytes.NewReader(d))
+	err := decoder.Decode(&block)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return &block
 }
