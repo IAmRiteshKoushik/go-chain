@@ -7,6 +7,27 @@ serves as a hands-on learning tool to explore the core concepts of blockchain:
 - Proof-of-Work: A consensus mechanism for securing the chain
 - Hashing: The cryptographic process used to link blocks and ensure data integrity
 
+## Understanding the DB Structure
+We know that the Bitcoin Core uses two "buckets" to store data:
+1. `blocks` stores metadata describing all the blocks in the chain
+2. `chainstate` stores the state of a chain, which is all currently unspent 
+transaction outputs and some metadata
+
+In `blocks`, the `key -> value` pairs are:
+1. 'b' + 32-byte block hash -> block index record
+2. 'f' + 4-byte file number -> file information record
+3. 'l' -> 4-byte file number: the last block file number used
+4. 'R' -> 1-byte boolean: whether we are in the process of reindexing
+5. 'F' + 1-byte flag name length + flag name string -> 1 byte boolean: various 
+    flags can be on or off
+6. 't' + 32-byte transaction hash -> transaction index record
+
+In `chainstate`, the `key -> value` pairs are:
+1. 'c' + 32-byte transaction hash -> unspent transaction output record for that 
+    transaction
+2. 'B' -> 32-byte block hash: the block hash up to whcih the database represents
+    the unspent transaction outputs
+
 ## Getting Started
 
 1. Clone the repository

@@ -2,23 +2,26 @@ package main
 
 import (
 	"bytes"
+	"crypto/sha256"
 	"encoding/gob"
 	"log"
 	"time"
 )
 
+// Every block must store one transaction and it's impossible to
+// mine blocks without transactions
 type Block struct {
 	Timestamp     int64
-	Data          []byte
+	Transactions  []*Transaction
 	PrevBlockHash []byte
 	Hash          []byte
 	Nonce         int
 }
 
-func NewBlock(data string, prevBlockHash []byte) *Block {
+func NewBlock(transactions []*Transaction, prevBlockHash []byte) *Block {
 	block := &Block{
 		Timestamp:     time.Now().Unix(),
-		Data:          []byte(data),
+		Transactions:  transactions,
 		PrevBlockHash: prevBlockHash,
 	}
 	pow := NewProofOfWork(block)
@@ -30,10 +33,28 @@ func NewBlock(data string, prevBlockHash []byte) *Block {
 	return block
 }
 
+// For hashing all transactions and ensuring that they are unique, we are
+// concatenating all of them into a single massive array of hashes, joining
+// them into a slice of bytes and hashing them into a new hash of 32-bytes.
+// Bitcoin originally uses Merkle tree but we are not implementing it now
+func (b *Block) HashTransactions() []byte {
+	var txHashes [][]byte
+	var txHash [32]byte
+
+	for _, tx := range b.Transactions {
+		txHashes = append(txHashes, tx.ID)
+	}
+
+	// sha256 always returns 32 byte hashes
+	txHash = sha256.Sum256(bytes.Join(txHashes, []byte{}))
+	return txHash[:]
+}
+
 // For mining, there always needs to be the 'first' block of the chain,
-// and the block is called the genesis block
-func NewGenesisBlock() *Block {
-	return NewBlock("Genesis Block", []byte{})
+// and the block is called the genesis block. As every block stores a
+// transaction, the genesis block contains a coinbase transaction
+func NewGenesisBlock(coinbase *Transaction) *Block {
+	return NewBlock([]*Transaction{coinbase}, []byte{})
 }
 
 // For serialization and deserialization needs, we are using the Go
